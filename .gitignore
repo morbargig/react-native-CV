@@ -9,5 +9,9 @@ npm-debug.*
 *.orig.*
 web-build/
 
+# congif
+congif/env
+congif/env.ts
+
 # macOS
 .DS_Store
