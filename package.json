@@ -12,6 +12,7 @@
   },
   "jest": {
     "preset": "jest-expo"
+    
   },
   "dependencies": {
     "@expo/vector-icons": "^12.0.0",
