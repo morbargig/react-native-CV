@@ -4,18 +4,18 @@
  *
  */
 import { FontAwesome } from '@expo/vector-icons';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createNativeStackNavigator, NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as React from 'react';
-import { ColorSchemeName, Pressable } from 'react-native';
+import { ColorSchemeName } from 'react-native';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 
 import Colors from '../constants/Colors';
 import useColorScheme from '../hooks/useColorScheme';
 import ModalScreen from '../screens/ModalScreen';
 import NotFoundScreen from '../screens/NotFoundScreen';
-import TabOneScreen from '../screens/TabOneScreen';
-import TabTwoScreen from '../screens/TabTwoScreen';
+import HomeScreen from '../screens/HomeScreen';
+import firebaseApi from '../servicses/apis/firebaseApi';
 import { RootStackParamList, RootTabParamList, RootTabScreenProps } from '../types';
 import LinkingConfiguration from './LinkingConfiguration';
 
@@ -35,6 +35,8 @@ export default function Navigation({ colorScheme }: { colorScheme: ColorSchemeNa
  */
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+type Props = NativeStackScreenProps<RootStackParamList>;
+
 function RootNavigator() {
   return (
     <Stack.Navigator>
@@ -51,49 +53,62 @@ function RootNavigator() {
  * A bottom tab navigator displays tab buttons on the bottom of the display to switch screens.
  * https://reactnavigation.org/docs/bottom-tab-navigator
  */
-const BottomTab = createBottomTabNavigator<RootTabParamList>();
 
-function BottomTabNavigator() {
+const BottomTab = createMaterialTopTabNavigator<RootTabParamList>();
+
+{/* <Text onPress={() => Linking.openURL(url)}>
+    {url}
+</Text> */}
+
+function BottomTabNavigator({ navigation, route }: RootTabScreenProps<'Home' | 'TabTwo'>) {
   const colorScheme = useColorScheme();
-
+  const { keys } = firebaseApi
   return (
     <BottomTab.Navigator
-      initialRouteName="TabOne"
+      initialRouteName='Home'
+      tabBarPosition='bottom'
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme].tint,
-      }}>
-      <BottomTab.Screen
-        name="TabOne"
-        component={TabOneScreen}
-        options={({ navigation }: RootTabScreenProps<'TabOne'>) => ({
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Pressable
-              onPress={() => navigation.navigate('Modal')}
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.5 : 1,
-              })}>
-              <FontAwesome
-                name="info-circle"
-                size={25}
-                color={Colors[colorScheme].text}
-                style={{ marginRight: 15 }}
-              />
-            </Pressable>
-          ),
-        })}
-      />
-      <BottomTab.Screen
-        name="TabTwo"
-        component={TabTwoScreen}
-        options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+      }}
+    >
+      {
+        keys?.map(i =>
+          <BottomTab.Screen
+            key={i}
+            name={i as any}
+            component={HomeScreen}
+            initialParams={{ 'fileName': i }}
+            options={() => ({
+              tabBarIcon: ({ color }) => <TabBarIcon name='file' color={color} />,
+              // headerRight: <Pressable
+              //   // onPress={() => navigation.navigate('Modal')
+              //   // onPress={() => navigation.navigate('Root', { screen: 'TabOne' ,  params: { fileName:'' }    } )
+              //   // }
+              //   style={({ pressed }) => ({
+              //     opacity: pressed ? 0.5 : 1,
+              //   })}>
+              //   <FontAwesome
+              //     name="info-circle"
+              //     size={25}
+              //     color={Colors[colorScheme].text}
+              //     style={{ marginRight: 15 }}
+              //   />
+              // </Pressable>
+              // ,
+            })}
+          />
+        )
+      }
+      {/* <BottomTab.Screen
+            name="TabTwo"
+            component={TabTwoScreen}
+            options={{
+              title: 'Tab Two',
+              tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
         }}
-      />
-    </BottomTab.Navigator>
-  );
+
+      /> */}
+    </BottomTab.Navigator >);
 }
 
 /**
@@ -102,6 +117,7 @@ function BottomTabNavigator() {
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
   color: string;
+  size?: number
 }) {
-  return <FontAwesome size={30} style={{ marginBottom: -3 }} {...props} />;
+  return <FontAwesome style={{ marginBottom: -3 }} size={30} {...props} />;
 }
