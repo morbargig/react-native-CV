@@ -2,7 +2,7 @@
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
-    "push": "git add . && git commit -m \" `echo \"The value of --foo is ${date}\"`\"&& git push origin master",
+    "push": "git add . && git commit -m \" `echo \"The value of --foo is ${date} \"`\"&& git push origin master",
     "push1": "git add . && date && git commit -m \" `echo \"Auto commit by ${whoami} at ${date} \"`\"&& git push origin master",
     "android": "expo start --android",
     "ios": "expo start --ios",
