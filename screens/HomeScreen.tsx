@@ -11,12 +11,7 @@ import Colors from '../constants/Colors';
 import useColorScheme from '../hooks/useColorScheme';
 
 import { getDocumentAsync } from 'expo-document-picker'
-
-
-
-// import base64 from 'base-64';
-// import utf8 from 'utf8';
-// import { Buffer } from 'buffer';
+import axios from 'axios';
 
 enum actionEnum {
   Delete,
@@ -45,7 +40,6 @@ export default function HomeScreen({ route, navigation }: RootTabScreenProps<'Ho
   // </iframe>`
 
   const [isOpen, setIsOpen] = React.useState(false)
-  // const [value, setValue] = React.useState(null)
   const colorScheme = useColorScheme();
   const onValueChange = (getValFunc: () => actionEnum) => {
     const actionType = getValFunc()
@@ -55,49 +49,28 @@ export default function HomeScreen({ route, navigation }: RootTabScreenProps<'Ho
         break;
       case actionEnum.Edit:
         getDocumentAsync({
-          type: '*/*',
-        })?.then(async (x: any) => {
-          console.log(x?.uri)
-          // const t = await FileSystem.getContentUriAsync(x?.url)
-          new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            xhr.onload = function () {
-              // return the blob
-              resolve(xhr.response);
-            };
-
-            xhr.onerror = function () {
-              // something went wrong
-              reject(new Error('uriToBlob failed'));
-            };
-            // this helps us get a blob
-            xhr.responseType = 'blob';
-            xhr.open('GET', x?.uri, true);
-
-            xhr.send(null);
-          })?.then(res => console.log(res))
-          // new Blob([new Uint8Array((apiResponse.data.ArrayBuffer))], {type: 'application/pdf'})
-          // const blob = await response.blob();
-          // var ref = firebase.storage().ref().child("my-image");
-          // return ref.put(blob);
-
-          // console.log(response)
-          // const file = await FileSystemFileEntry.s((x as any)?.uri);
-          // const bytes = utf8.encode(file);
-          // const encoded = base64.encode(bytes);
-
-          // //
-          // const base64Image = new Buffer(file, 'binary').toString('base64');
-          // console.log(x)
-          // firebaseApi.uploadPdf(x as any)?.pipe(take(1)).subscribe(res => {
-          //   console.log(res)
-          // })
+          type: 'application/pdf'
+        })?.then(file => {
+          const { type } = file
+          if (type === 'cancel') {
+            return;
+          }
+          const { uri, name } = file
+          try {
+            axios.get(uri, { responseType: 'arraybuffer' })?.then((fetchResponse) => {
+              console.log('fetchResponse', fetchResponse);
+              const uint8Array = new Uint8Array(fetchResponse?.data)
+              const file = uint8Array
+              const uploadedFileName = name || uri.substring(uri.lastIndexOf('/') + 1)
+              firebaseApi.uploadPdf(file, uploadedFileName, fileName as any)?.pipe(take(1))?.subscribe()
+            })
+          } catch (error) {
+            console.log('ERR: ' + error);
+          }
         })
-
       default:
         break;
     }
-
   }
   return (
     <View style={styles.container}>
