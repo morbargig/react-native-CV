@@ -1,17 +1,10 @@
 import firebase from 'firebase'
-import { BehaviorSubject, from, map, Observable, switchMap, tap } from 'rxjs'
+import { BehaviorSubject, from, map, Observable, switchMap, tap, take } from 'rxjs';
 import firebaseConfig from '../../config/firebase'
 
+type pdfData = { [key: string]: string }
 
-type pdfModel<T extends {
-    hebrewFile?: string,
-    englishFile?: string,
-    linkedinFile?: string,
-} = {
-    hebrewFile?: string,
-    englishFile?: string,
-    linkedinFile?: string,
-}> = { data: T } & {
+type pdfModel<T extends pdfData = pdfData> = { data: T } & {
     language: keyof T,
 }
 
@@ -591,6 +584,7 @@ class FirebaseApi {
     private user: firebase.User | null = null
     private adminUserName: string = 'Hyr14QJ2wHPrMPsurzVP5yumse12'
     public pdf: pdfModel | undefined
+    public pdfChanged: BehaviorSubject<pdfModel | null> = new BehaviorSubject<pdfModel | null>(null)
     public authStateChanged: BehaviorSubject<firebase.User | null> = new BehaviorSubject<firebase.User | null>(null)
 
     constructor() {
@@ -606,7 +600,7 @@ class FirebaseApi {
         if (Object.keys(this.pdf || {})?.length) {
             return keys as (keyof pdfModel['data'])[]
         }
-        return ['englishFile', 'hebrewFile', 'linkedinFile']
+        return []
     }
 
     private onAuthStateChanged = (nextOrObserver: | firebase.Observer<any> | ((a: firebase.User | null) => any),
@@ -622,8 +616,24 @@ class FirebaseApi {
             }
         } as pdfModel))
 
+    updatePdfState = (pdf: pdfModel) => {
+        const handleChanges = (pdf: pdfModel) => {
+            this.pdf = pdf;
+            this.pdfChanged.next(pdf);
+        }
+        if (!pdf) {
+            const s = this.newPdf()?.pipe(take(1))?.subscribe((pdf) => {
+                s?.unsubscribe()
+                handleChanges(pdf)
+            })
+        } else {
+            handleChanges(pdf)
+        }
+
+    }
+
     getPdf = (): Observable<pdfModel> =>
-        from(this.firebase.database().ref(`CV/${this.username}/`).once('value'))?.pipe(map(snap => snap?.val()), tap((pdf: pdfModel) => this.pdf = pdf))
+        from(this.firebase.database().ref(`CV/${this.username}/`).once('value'))?.pipe(map(snap => snap?.val()), tap(this.updatePdfState))
 
     uploadPdf = (uploadedImage: (Blob | Uint8Array | ArrayBuffer), fileName: string, fileTypeName?: keyof pdfModel['data']): Observable<string> => {
         const storageRef = this.firebase.storage().ref();
@@ -639,7 +649,7 @@ class FirebaseApi {
 
     updatePdf = (upData: any): any =>
         from(this.firebase.database().ref(`CV/${this.username}/`).once('value')).pipe(switchMap(snap =>
-            from(this.firebase.database().ref(`CV/${this.username}`).set({ ...snap.val(), ...upData } as pdfModel))
+            from(this.firebase.database().ref(`CV/${this.username}`).set({ ...snap.val(), ...upData } as pdfModel))?.pipe(tap(() => this.updatePdfState({ ...snap.val(), ...upData })))
         ))
 
     deleteFile = (url: string) => from(this.firebase.storage().refFromURL(url)?.delete())

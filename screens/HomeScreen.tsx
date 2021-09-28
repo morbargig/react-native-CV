@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { StyleSheet, Pressable } from 'react-native';
 import WebView from 'react-native-webview';
-import { take } from 'rxjs';
+import { take, from, Observable } from 'rxjs';
 import { Text, View } from '../components/Themed';
 import firebaseApi from '../servicses/apis/firebaseApi';
 import { RootTabScreenProps } from '../types';
@@ -19,17 +19,26 @@ enum actionEnum {
 }
 
 export default function HomeScreen({ route, navigation }: RootTabScreenProps<'Home'>) {
-  // const defaultUri = 'https://firebasestorage.googleapis.com/v0/b/morbargig-a81d2.appspot.com/o/CV%2Fno-photo-available.png?alt=media&token=27b382af-7a35-4551-ade9-5edb5271df6b'
-  // const [fileName, setFileName] = React.useState(route?.params?.fileName || '')
-
+  const defaultFile = 'https://firebasestorage.googleapis.com/v0/b/morbargig-a81d2.appspot.com/o/CV%2Fno-photo-available.png?alt=media&token=27b382af-7a35-4551-ade9-5edb5271df6b'
   const fileName: string = route?.params?.fileName || ''
-  const [fileUri, setFileUri] = React.useState('https://firebasestorage.googleapis.com/v0/b/morbargig-a81d2.appspot.com/o/CV%2Fno-photo-available.png?alt=media&token=27b382af-7a35-4551-ade9-5edb5271df6b')
+  const [fileUri, setFileUri] = React.useState(defaultFile)
+
+  // const [subscribes, setSubscribes] = React.useState([] as Subscription[])
+  // const [ended, setEnded] = React.useState(false)
+  // // stops all subscribes (by ended property) and unsubscribe them
+  // const destroy = () => {
+  //   setEnded(true)
+  //   subscribes?.forEach(x => x?.unsubscribe())
+  // }
+
   React.useEffect(() => {
-    firebaseApi.getPdf()?.pipe(take(1))?.subscribe(res => {
-      setFileUri((res?.data as any)?.[fileName])
+    const s = firebaseApi.pdfChanged?.subscribe(pdf => {
+      const fileUri = pdf?.data?.[fileName]?.split('&token')?.[0]
+      !!fileUri && setFileUri(oldVal => fileUri || oldVal)
+      console.log(pdf)
     })
+    return () => s?.unsubscribe()
   }, [])
-  // !!fileName && !!firebaseApi?.pdf && (fileName !== firebaseApi?.pdf?.language) && (fileUri !== defaultUri) && console.log(1) // firebaseApi?.updatePdf({ ...firebaseApi?.pdf, language: fileName })
 
   // const iframeEl = (fileUri: string) => `<iframe src=${fileUri}
   // width="100%"
@@ -58,11 +67,11 @@ export default function HomeScreen({ route, navigation }: RootTabScreenProps<'Ho
           const { uri, name } = file
           try {
             axios.get(uri, { responseType: 'arraybuffer' })?.then((fetchResponse) => {
-              console.log('fetchResponse', fetchResponse);
+              // console.log('fetchResponse', fetchResponse);
               const uint8Array = new Uint8Array(fetchResponse?.data)
               const file = uint8Array
               const uploadedFileName = name || uri.substring(uri.lastIndexOf('/') + 1)
-              firebaseApi.uploadPdf(file, uploadedFileName, fileName as any)?.pipe(take(1))?.subscribe()
+              const s = firebaseApi.uploadPdf(file, uploadedFileName, fileName as any)?.pipe(take(1))?.subscribe(() => s?.unsubscribe())
             })
           } catch (error) {
             console.log('ERR: ' + error);
@@ -112,28 +121,26 @@ export default function HomeScreen({ route, navigation }: RootTabScreenProps<'Ho
           />
         </Pressable>
       </View>
-      {
-        <WebView
-          scalesPageToFit={true}
-          style={{ height: 900, width: 375 }}
-          nativeID={fileName}
-          source={{
-            uri: fileUri,
-          }}
-          // source={{
-          //   html: `
-          //         <!DOCTYPE html>
-          //         <html>
-          //           <head></head>
-          //           <body style="width=100vw; height="100%">
-          //       ${iframeEl(fileUri)}
-          //           </body>
-          //         </html>
-          //   `,
-          // }}
-          automaticallyAdjustContentInsets={true}
-        />
-      }
+      <WebView
+        scalesPageToFit={true}
+        style={{ height: 900, width: 375 }}
+        nativeID={fileName}
+        source={{
+          uri: fileUri,
+        }}
+        // source={{
+        //   html: `
+        //           <!DOCTYPE html>
+        //           <html>
+        //             <head></head>
+        //             <body style="width=100vw; height="100%">
+        //         ${iframeEl(fileUri)}
+        //             </body>
+        //           </html>
+        //     `,
+        // }}
+        automaticallyAdjustContentInsets={true}
+      />
     </View>
   );
 }

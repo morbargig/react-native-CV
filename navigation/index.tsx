@@ -6,7 +6,6 @@
 import { FontAwesome } from '@expo/vector-icons';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator, NativeStackScreenProps } from '@react-navigation/native-stack';
-import * as React from 'react';
 import { ColorSchemeName } from 'react-native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 
@@ -18,6 +17,8 @@ import HomeScreen from '../screens/HomeScreen';
 import firebaseApi from '../servicses/apis/firebaseApi';
 import { RootStackParamList, RootTabParamList, RootTabScreenProps } from '../types';
 import LinkingConfiguration from './LinkingConfiguration';
+import { skip, take } from 'rxjs';
+import React, { useEffect, useState } from 'react';
 
 export default function Navigation({ colorScheme }: { colorScheme: ColorSchemeName }) {
   return (
@@ -38,6 +39,10 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 type Props = NativeStackScreenProps<RootStackParamList>;
 
 function RootNavigator() {
+  React.useEffect(() => {
+    const s = firebaseApi.getPdf()?.pipe(take(1)).subscribe()
+    return () => s?.unsubscribe()
+  }, [])
   return (
     <Stack.Navigator>
       <Stack.Screen name="Root" component={BottomTabNavigator} options={{ headerShown: false }} />
@@ -62,7 +67,28 @@ const BottomTab = createMaterialTopTabNavigator<RootTabParamList>();
 
 function BottomTabNavigator({ navigation, route }: RootTabScreenProps<'Home' | 'TabTwo'>) {
   const colorScheme = useColorScheme();
-  const { keys } = firebaseApi
+  const [keys, setKeys] = useState([] as string[])
+  // const [subscribes, setSubscribes] = React.useState([] as Subscription[])
+  // const [ended, setEnded] = React.useState(false)
+
+  // // stops all subscribes (by ended property) and unsubscribe them
+  // const destroy = () => {
+  //   setEnded(true)
+  //   subscribes?.forEach(x => x?.unsubscribe())
+  // }
+
+  useEffect(() => {
+    const s = firebaseApi.pdfChanged?.pipe(
+      skip(1),
+    )?.subscribe(pdf => {
+      setKeys(Object.keys(pdf?.data || {}))
+    })
+    return () => s?.unsubscribe()
+  }, [])
+
+  if (!keys?.length) {
+    return <></>
+  }
   return (
     <BottomTab.Navigator
       initialRouteName='Home'
