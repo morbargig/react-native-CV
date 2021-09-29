@@ -1,7 +1,7 @@
-import * as React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Pressable } from 'react-native';
 import WebView from 'react-native-webview';
-import { take, from, Observable } from 'rxjs';
+import { take } from 'rxjs';
 import { Text, View } from '../components/Themed';
 import firebaseApi from '../servicses/apis/firebaseApi';
 import { RootTabScreenProps } from '../types';
@@ -21,7 +21,7 @@ enum actionEnum {
 export default function HomeScreen({ route, navigation }: RootTabScreenProps<'Home'>) {
   const defaultFile = 'https://firebasestorage.googleapis.com/v0/b/morbargig-a81d2.appspot.com/o/CV%2Fno-photo-available.png?alt=media&token=27b382af-7a35-4551-ade9-5edb5271df6b'
   const fileName: string = route?.params?.fileName || ''
-  const [fileUri, setFileUri] = React.useState(defaultFile)
+  const [fileUri, setFileUri] = useState(defaultFile)
 
   // const [subscribes, setSubscribes] = React.useState([] as Subscription[])
   // const [ended, setEnded] = React.useState(false)
@@ -31,14 +31,16 @@ export default function HomeScreen({ route, navigation }: RootTabScreenProps<'Ho
   //   subscribes?.forEach(x => x?.unsubscribe())
   // }
 
-  React.useEffect(() => {
+  useEffect(() => {
     const s = firebaseApi.pdfChanged?.subscribe(pdf => {
       const fileUri = pdf?.data?.[fileName]?.split('&token')?.[0]
       !!fileUri && setFileUri(oldVal => fileUri || oldVal)
-      console.log(pdf)
+      // console.log(pdf)
     })
     return () => s?.unsubscribe()
   }, [])
+
+
 
   // const iframeEl = (fileUri: string) => `<iframe src=${fileUri}
   // width="100%"
@@ -48,7 +50,10 @@ export default function HomeScreen({ route, navigation }: RootTabScreenProps<'Ho
   // allowFullScreen>
   // </iframe>`
 
-  const [isOpen, setIsOpen] = React.useState(false)
+  // const login = () => this.auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+  // const logout = (): Promise<void> => !!this.user ? this.auth.signOut() : of(null)?.toPromise()
+
+  const [isOpen, setIsOpen] = useState(false)
   const colorScheme = useColorScheme();
   const onValueChange = (getValFunc: () => actionEnum) => {
     const actionType = getValFunc()
@@ -58,7 +63,8 @@ export default function HomeScreen({ route, navigation }: RootTabScreenProps<'Ho
         break;
       case actionEnum.Edit:
         getDocumentAsync({
-          type: 'application/pdf'
+          type: 'application/pdf',
+          multiple: false,
         })?.then(file => {
           const { type } = file
           if (type === 'cancel') {
@@ -122,24 +128,21 @@ export default function HomeScreen({ route, navigation }: RootTabScreenProps<'Ho
         </Pressable>
       </View>
       <WebView
-        scalesPageToFit={true}
-        style={{ height: 900, width: 375 }}
-        nativeID={fileName}
+        style={{ height: 2000, width: 375 }}
         source={{
           uri: fileUri,
         }}
-        // source={{
-        //   html: `
-        //           <!DOCTYPE html>
-        //           <html>
-        //             <head></head>
-        //             <body style="width=100vw; height="100%">
-        //         ${iframeEl(fileUri)}
-        //             </body>
-        //           </html>
-        //     `,
-        // }}
-        automaticallyAdjustContentInsets={true}
+      // source={{
+      //   html: `
+      //           <!DOCTYPE html>
+      //           <html>
+      //             <head></head>
+      //             <body style="width=100vw; height="100%">
+      //         ${iframeEl(fileUri)}
+      //             </body>
+      //           </html>
+      //     `,
+      // }}
       />
     </View>
   );

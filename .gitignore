@@ -13,5 +13,9 @@ web-build/
 congif/env
 congif/env.ts
 
+google-services.json
+GoogleService-Info.plist
+app.json
+
 # macOS
 .DS_Store

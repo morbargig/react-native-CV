@@ -19,13 +19,36 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+
+
+
+
+      "bundleIdentifier": "example.expo.googlesignin",
+      "config": {
+        "googleSignIn": {
+          "reservedClientId": "com.googleusercontent.apps.475426301650-j33l9e02ci7dsat5hfi56dps9hfu5s25"
+        }
+      },
+      "googleServicesFile": "./GoogleService-Info.plist"
+
+
+
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+
+      
+
+      "package": "example.expo.googlesignin",
+      "googleServicesFile": "./google-services.json"
+
+
+
+
     },
     "web": {
       "favicon": "./assets/images/favicon.png"

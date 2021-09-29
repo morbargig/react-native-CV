@@ -1,13 +1,18 @@
 import firebase from 'firebase'
-import { BehaviorSubject, from, map, Observable, switchMap, tap, take } from 'rxjs';
+import { BehaviorSubject, from, map, Observable, switchMap, tap, take, of } from 'rxjs';
 import firebaseConfig from '../../config/firebase'
+
+import * as AppAuth from 'expo-app-auth';
+import * as GoogleSignIn from 'expo-google-sign-in';
+
+// When configured correctly, URLSchemes should contain your REVERSED_CLIENT_ID
+const { URLSchemes } = AppAuth;
 
 type pdfData = { [key: string]: string }
 
 type pdfModel<T extends pdfData = pdfData> = { data: T } & {
     language: keyof T,
 }
-
 class FirebaseApi {
     private _firebase: firebase.app.App | any
 
@@ -15,7 +20,28 @@ class FirebaseApi {
         return this._firebase || firebase
     }
 
-    getFileContenttype = (fileName: string) => {
+
+    initAuth = () => GoogleSignIn.initAsync()?.then(() => this.setAuth())
+
+
+    setAuth = () => GoogleSignIn.signInSilentlyAsync()?.then(user => {
+        // this.user = user
+        console.log(user)
+    })
+
+    logout = () => GoogleSignIn.signOutAsync()?.then(() => this.user = null)
+
+    signIn = () => {
+        try {
+            GoogleSignIn.askForPlayServicesAsync()?.then(() => {
+                GoogleSignIn.signInAsync()?.then(({ type, user }) => { (type === 'success') && this.setAuth() })
+            })
+        } catch ({ message }) {
+            alert('login: Error:' + message);
+        }
+    };
+
+    getFileContentType = (fileName: string) => {
         const extensionFile = fileName?.split('.')?.[fileName?.split('.')?.length - 1]
         switch (extensionFile) {
             case "323": return "text/h323";
@@ -592,7 +618,12 @@ class FirebaseApi {
             (this._firebase = firebase.initializeApp(firebaseConfig))
         this.onAuthStateChanged((u) => (this.user = u) || this.authStateChanged?.next(u))
 
-        //   firebase.firestore().
+
+        this.authStateChanged?.subscribe(u => {
+            console.log(u)
+            // this.login()
+        })
+        this.initAuth()
     }
 
     public get keys(): (keyof pdfModel['data'])[] {
@@ -632,6 +663,9 @@ class FirebaseApi {
 
     }
 
+    login = () => this.firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider())
+    // logout = (): Observable<void> => !!this.user ? from(firebase.auth().signOut()) : of()
+
     getPdf = (): Observable<pdfModel> =>
         from(this.firebase.database().ref(`CV/${this.username}/`).once('value'))?.pipe(map(snap => snap?.val()), tap(this.updatePdfState))
 
@@ -639,7 +673,7 @@ class FirebaseApi {
         const storageRef = this.firebase.storage().ref();
         const fileRef = storageRef
             .child(`/CV/${this.username}/${fileName}`);
-        return from(fileRef.put(uploadedImage, { contentType: this.getFileContenttype(fileName) }))?.pipe(switchMap(uploadTaskSnapshot => from(uploadTaskSnapshot.ref.getDownloadURL())))?.pipe(
+        return from(fileRef.put(uploadedImage, { contentType: this.getFileContentType(fileName) }))?.pipe(switchMap(uploadTaskSnapshot => from(uploadTaskSnapshot.ref.getDownloadURL())))?.pipe(
             tap(url => this.updatePdf(
                 {
                     ...this.pdf, data: { ...this.pdf?.data, [fileTypeName || (this.pdf as any).language]: url }
