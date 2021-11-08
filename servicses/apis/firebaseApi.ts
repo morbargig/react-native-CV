@@ -1,7 +1,6 @@
 import firebase from 'firebase'
 import { BehaviorSubject, from, map, Observable, switchMap, tap, take, of } from 'rxjs';
 import firebaseConfig from '../../config/firebase'
-
 import * as AppAuth from 'expo-app-auth';
 import * as GoogleSignIn from 'expo-google-sign-in';
 
